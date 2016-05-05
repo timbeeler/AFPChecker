@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+#:)
+# Each line in the following list is checked for AFP conneciton
+AFP_LIST="/usr/local/afpchecker/list_afp.txt"
+
+# This folder is shoud be on the host, and needs to have guest access enabelded for read/write 
+AFP_DIR=afptmp
+
+# Log file
+touch /log_afpcheck.log
+LOGFILE="/log_afpcheck.log"
+
+# This creates a unique name for writing to the server
+TEST_FILE=$(cat /dev/urandom | env LC_CTYPE=C tr -dc a-zA-Z0-9 | head -c 16; echo)
+
+# Check to see if there is a AFP list to read from
+if [[ ! -f ${AFP_LIST} ]]; then
+ echo "Cannot find List of afp shares looking for $AFP_LIST" 
+ exit 1
+fi
+
+
+while read -ra IP_ADDRESS ; do
+	
+	#makes the dir to mount
+	START_TIME=$(date '+%B %d %H:%M:%S')
+	echo -n "[$START_TIME] AFP Check - $IP_ADDRESS - Starting - " >> $LOGFILE && mkdir /Volumes/$IP_ADDRESS 2>> $LOGFILE  && printf "\n" >> $LOGFILE 	
+	#mounts the AFP share
+	echo -n "[$START_TIME] AFP Check - $IP_ADDRESS - Mounting - " >> $LOGFILE && /sbin/mount_afp afp://$IP_ADDRESS/$AFP_DIR /Volumes/$IP_ADDRESS 2>> $LOGFILE && printf "\n" >>$LOGFILE
+	
+	sleep 1
+	#creates a file and removes it
+	TOUCH_TIME=$(date '+%B %d %H:%M:%S')
+	printf "[$TOUCH_TIME] AFP Check - $IP_ADDRESS - Adding $TEST_FILE " >>$LOGFILE && touch /Volumes/$IP_ADDRESS/$TEST_FILE 2>> $LOGFILE && printf "\n" >>$LOGFILE	
+	printf "[$TOUCH_TIME] AFP Check - $IP_ADDRESS - Deleting $TEST_FILE " >>$LOGFILE && rm /Volumes/$IP_ADDRESS/$TEST_FILE 2>> $LOGFILE && printf "\n" >>$LOGFILE
+	
+	#unmount 
+	DONE_TIME=$(date '+%B %d %H:%M:%S')
+	printf "[$DONE_TIME] AFP Check - $IP_ADDRESS - Unmounting - " >>$LOGFILE &&  /sbin/umount /Volumes/$IP_ADDRESS 2>> $LOGFILE && printf "\n" >>$LOGFILE
+	
+	sleep 1	
+	
+	[ $? == 0 ] && echo "Success:" $IP_ADDRESS >> $LOGFILE 2>&1
+
+ done < $AFP_LIST
+
+exit $?
