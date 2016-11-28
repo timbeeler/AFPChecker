@@ -20,4 +20,4 @@ A Nagios Host runs nrpe command with the argument check_log. The nrpe.cfg file o
 
 command[check_log]=/usr/local/nagios/libexec/check_log -F /log_afpcheck.log -O /var/tmp/log_afpcheck -q error. This combination inspects the logs looking for “error”, which is returned when the afpcheck cannot perform one of it’s tasks.
 
-Pull request
+Testing issues
